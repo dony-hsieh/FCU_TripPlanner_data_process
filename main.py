@@ -35,7 +35,7 @@ def extract_attraction_data():
     print(f"[*] \"{store_fp}\" has been written {len(attraction_csv_data)} rows")
 
 
-def insert_attraction_data_to_database():
+def insert_attraction_data_to_database(local_loading: bool = False):
     # prepare statements and args
     sql_load_statements = {}
     attraction_temp_fp = f"{pathlib.Path(TEMP_ATTRACTION_CSV).absolute()}"
@@ -48,7 +48,7 @@ def insert_attraction_data_to_database():
         ["`Attraction_id`"] + [f"`{attr}`" for attr in ACTIVITY_CSV_ATTR[1:]]
     ]
     sql_basic_load_statement = """
-            LOAD DATA LOCAL INFILE %s
+            LOAD DATA {} INFILE %s
             REPLACE
             INTO TABLE {}
             FIELDS TERMINATED BY ',' ENCLOSED BY '"'
@@ -56,9 +56,18 @@ def insert_attraction_data_to_database():
             IGNORE 1 ROWS
             ({});
         """
-    sql_load_statements["Attraction"] = sql_basic_load_statement.format("`Attraction`", ",".join(attraction_attr_mapping)).strip()
+    LOCAL_str = "LOCAL" if local_loading else ""
+    sql_load_statements["Attraction"] = sql_basic_load_statement.format(
+        LOCAL_str,
+        "`Attraction`",
+        ",".join(attraction_attr_mapping)
+    ).strip()
     for i, key in enumerate(("Scenic_spot", "Restaurant", "Hotel", "Activity")):
-        sql_load_statements[key] = sql_basic_load_statement.format(f"`{key}`", ",".join(subset_attr_mapping[i])).strip()
+        sql_load_statements[key] = sql_basic_load_statement.format(
+            LOCAL_str,
+            f"`{key}`",
+            ",".join(subset_attr_mapping[i])
+        ).strip()
 
     # execute insertion
     db = Database()
@@ -70,16 +79,16 @@ def insert_attraction_data_to_database():
     db.execute_CUD(sql_load_statements["Activity"], (subset_temp_fp[3],))
 
 
-def process_gov_attraction_data():
+def process_gov_attraction_data(local_loading: bool = False):
     # 1. download gov attraction data
     download_gov_attraction_data()
     # 2. attract data from csv files (handle and write temp csv)
     extract_attraction_data()
     # 3. build "LOAD DATA" sql statements
     # 4. insert csv to database
-    insert_attraction_data_to_database()
+    insert_attraction_data_to_database(local_loading)
     print("[*] Process \"process_gov_attraction_data()\" end")
 
 
 if __name__ == "__main__":
-    process_gov_attraction_data()
+    process_gov_attraction_data(True)
