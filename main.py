@@ -82,7 +82,7 @@ def insert_attraction_data_to_database(local_loading: bool = False):
 def process_gov_attraction_data(local_loading: bool = False):
     # 1. download gov attraction data
     download_gov_attraction_data()
-    # 2. attract data from csv files (handle and write temp csv)
+    # 2. extract data from csv files (handle and write temp csv)
     extract_attraction_data()
     # 3. build "LOAD DATA" sql statements
     # 4. insert csv to database
